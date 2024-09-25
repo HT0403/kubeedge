@@ -18,6 +18,7 @@ package taskexecutor
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -79,7 +80,7 @@ func initUpgrade(taskReq types.NodeTaskRequest) (event fsm.Event) {
 	}
 
 	if upgradeReq.UpgradeID == "" {
-		err = fmt.Errorf("upgradeID cannot be empty")
+		err = errors.New("upgradeID cannot be empty")
 		return
 	}
 	if upgradeReq.Version == version.Get().String() {
@@ -88,6 +89,16 @@ func initUpgrade(taskReq types.NodeTaskRequest) (event fsm.Event) {
 			Action: api.ActionSuccess,
 		}
 	}
+	// Check installation-package image digest
+	if upgradeReq.ImageDigest != "" {
+		var local string
+		// TODO: get local installation-package digest
+		if upgradeReq.ImageDigest != local {
+			err = fmt.Errorf("invalid installation-package image digest value: %s", local)
+			return
+		}
+	}
+
 	err = prepareKeadm(upgradeReq)
 	if err != nil {
 		return
@@ -119,6 +130,14 @@ func upgrade(taskReq types.NodeTaskRequest) (event fsm.Event) {
 		event.Msg = err.Error()
 		return
 	}
+
+	if upgradeReq.RequireConfirmation {
+		// TODO: The process is interrupted here, can the subsequent process be resumed?
+		event.Action = api.ActionConfirmation
+		event.Msg = "Wait for a confirm for upgrade request on the edge site."
+		return
+	}
+
 	err = keadmUpgrade(*upgradeReq, opts)
 	if err != nil {
 		event.Action = api.ActionFailure
