@@ -285,11 +285,23 @@ func (ndc *NodeUpgradeController) processUpgrade(upgrade *v1alpha1.NodeUpgradeJo
 	imageTag := upgrade.Spec.Version
 	image := fmt.Sprintf("%s:%s", repo, imageTag)
 
+	var imageDigest string
+	if g := upgrade.Spec.ImageDigestGatter; g != nil {
+		switch {
+		case g.Value != nil && *g.Value != "":
+			imageDigest = *g.Value
+		case g.RegistryAPI != nil:
+			// TODO: get image digest by registry v2 api (oras-project/oras-go)
+		}
+	}
+
 	upgradeReq := commontypes.NodeUpgradeJobRequest{
-		UpgradeID: upgrade.Name,
-		HistoryID: uuid.New().String(),
-		Version:   upgrade.Spec.Version,
-		Image:     image,
+		UpgradeID:           upgrade.Name,
+		HistoryID:           uuid.New().String(),
+		Version:             upgrade.Spec.Version,
+		Image:               image,
+		ImageDigest:         imageDigest,
+		RequireConfirmation: upgrade.Spec.RequireConfirmation,
 	}
 
 	tolerate, err := strconv.ParseFloat(upgrade.Spec.FailureTolerate, 64)
