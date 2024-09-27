@@ -83,19 +83,17 @@ func initUpgrade(taskReq types.NodeTaskRequest) (event fsm.Event) {
 		err = errors.New("upgradeID cannot be empty")
 		return
 	}
+	if upgradeReq.RequireConfirmation {
+		return fsm.Event{
+			Type:   "Confirm",
+			Action: api.ActionConfirmation,
+			Msg:    "Wait for a confirm for upgrade request on the edge site.",
+		}
+	}
 	if upgradeReq.Version == version.Get().String() {
 		return fsm.Event{
 			Type:   "Upgrading",
 			Action: api.ActionSuccess,
-		}
-	}
-	// Check installation-package image digest
-	if upgradeReq.ImageDigest != "" {
-		var local string
-		// TODO: get local installation-package digest
-		if upgradeReq.ImageDigest != local {
-			err = fmt.Errorf("invalid installation-package image digest value: %s", local)
-			return
 		}
 	}
 
@@ -130,14 +128,6 @@ func upgrade(taskReq types.NodeTaskRequest) (event fsm.Event) {
 		event.Msg = err.Error()
 		return
 	}
-
-	if upgradeReq.RequireConfirmation {
-		// TODO: The process is interrupted here, can the subsequent process be resumed?
-		event.Action = api.ActionConfirmation
-		event.Msg = "Wait for a confirm for upgrade request on the edge site."
-		return
-	}
-
 	err = keadmUpgrade(*upgradeReq, opts)
 	if err != nil {
 		event.Action = api.ActionFailure
@@ -179,6 +169,19 @@ func prepareKeadm(upgradeReq *commontypes.NodeUpgradeJobRequest) error {
 	err = container.PullImages([]string{image})
 	if err != nil {
 		return fmt.Errorf("pull image failed: %v", err)
+	}
+	// Check installation-package image digest
+	if upgradeReq.ImageDigest != "" {
+		var local string
+		local, err = container.GetImageDigest(image)
+		if err != nil {
+			return err
+		}
+		// TODO: get local installation-package digest
+		if upgradeReq.ImageDigest != local {
+			err = fmt.Errorf("invalid installation-package image digest value: %s", local)
+			return err
+		}
 	}
 	files := map[string]string{
 		filepath.Join(util.KubeEdgeUsrBinPath, util.KeadmBinaryName): filepath.Join(util.KubeEdgeUsrBinPath, util.KeadmBinaryName),
