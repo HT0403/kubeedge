@@ -25,18 +25,17 @@ import (
 
 // CloudInitUpdateBase defines common flags for init and upgrade in the cloud.
 type CloudInitUpdateBase struct {
-	KubeConfig          string
-	KubeEdgeVersion     string
-	AdvertiseAddress    string
-	Profile             string
-	ExternalHelmRoot    string
-	Sets                []string
-	ValueFiles          []string
-	Force               bool
-	DryRun              bool
-	PrintFinalValues    bool
-	ImageRepository     string
-	RequireConfirmation bool
+	KubeConfig       string
+	KubeEdgeVersion  string
+	AdvertiseAddress string
+	Profile          string
+	ExternalHelmRoot string
+	Sets             []string
+	ValueFiles       []string
+	Force            bool
+	DryRun           bool
+	PrintFinalValues bool
+	ImageRepository  string
 }
 
 const requiredSetSplitLen = 2

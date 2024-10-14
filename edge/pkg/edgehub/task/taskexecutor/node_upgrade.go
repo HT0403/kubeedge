@@ -177,10 +177,8 @@ func prepareKeadm(upgradeReq *commontypes.NodeUpgradeJobRequest) error {
 		if err != nil {
 			return err
 		}
-		// TODO: get local installation-package digest
 		if upgradeReq.ImageDigest != local {
-			err = fmt.Errorf("invalid installation-package image digest value: %s", local)
-			return err
+			return fmt.Errorf("invalid installation-package image digest value: %s", local)
 		}
 	}
 	files := map[string]string{

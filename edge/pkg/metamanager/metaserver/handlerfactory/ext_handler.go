@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strconv"
 
+	"k8s.io/klog/v2"
+
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/kubeedge/kubeedge/common/types"
 	commontypes "github.com/kubeedge/kubeedge/common/types"
@@ -16,7 +18,6 @@ import (
 	v2 "github.com/kubeedge/kubeedge/edge/pkg/metamanager/dao/v2"
 	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/metaserver/common"
 	"github.com/kubeedge/kubeedge/pkg/version"
-	"k8s.io/klog/v2"
 )
 
 func (f *Factory) Restart(namespace string) http.Handler {

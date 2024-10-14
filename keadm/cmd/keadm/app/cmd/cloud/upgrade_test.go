@@ -90,11 +90,6 @@ func TestAddUpgradeOptionFlags(t *testing.T) {
 			defValue:  "false",
 		},
 		{
-			name:      types.FlagNameRequireConfirmation,
-			shorthand: "r",
-			defValue:  "false",
-		},
-		{
 			name:      types.FlagNameSet,
 			shorthand: "",
 			defValue:  "[]",
