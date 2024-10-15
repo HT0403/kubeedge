@@ -29,10 +29,6 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/google/uuid"
-	api "github.com/kubeedge/api/apis/fsm/v1alpha1"
-	"github.com/kubeedge/api/apis/operations/v1alpha1"
-	crdClientset "github.com/kubeedge/api/client/clientset/versioned"
-	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryType "k8s.io/apimachinery/pkg/types"
@@ -44,6 +40,10 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 	"oras.land/oras-go/v2/registry/remote/retry"
 
+	api "github.com/kubeedge/api/apis/fsm/v1alpha1"
+	"github.com/kubeedge/api/apis/operations/v1alpha1"
+	crdClientset "github.com/kubeedge/api/client/clientset/versioned"
+	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
 	"github.com/kubeedge/kubeedge/cloud/pkg/common/client"
 	keclient "github.com/kubeedge/kubeedge/cloud/pkg/common/client"
 	"github.com/kubeedge/kubeedge/cloud/pkg/common/informers"
