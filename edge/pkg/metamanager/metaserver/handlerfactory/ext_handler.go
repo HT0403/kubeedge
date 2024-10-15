@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/beego/beego/v2/client/orm"
 	"k8s.io/klog/v2"
 
-	"github.com/beego/beego/v2/client/orm"
 	"github.com/kubeedge/kubeedge/common/types"
 	commontypes "github.com/kubeedge/kubeedge/common/types"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgehub/task/taskexecutor"
@@ -71,7 +71,7 @@ func SaveTaskReq(o orm.Ormer, doc *v2.MetaV2) error {
 	klog.V(4).Info("insert NodeTaskRequest data successfully")
 	return nil
 }
-func (f *Factory) ConfirmUpgrade(upgradeJobName string) http.Handler {
+func (f *Factory) ConfirmUpgrade(_ string) http.Handler {
 	h := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		klog.Infof("Begin to run upgrade command")
 		var upgradeReq commontypes.NodeUpgradeJobRequest
