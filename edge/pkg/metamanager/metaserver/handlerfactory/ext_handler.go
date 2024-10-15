@@ -1,21 +1,17 @@
 package handlerfactory
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os/exec"
-	"reflect"
-	"strconv"
 
-	"github.com/beego/beego/v2/client/orm"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/kubeedge/common/types"
 	commontypes "github.com/kubeedge/kubeedge/common/types"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgehub/task/taskexecutor"
-	v2 "github.com/kubeedge/kubeedge/edge/pkg/metamanager/dao/v2"
+	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/dao/upgrade"
 	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/metaserver/common"
 	"github.com/kubeedge/kubeedge/pkg/version"
 )
@@ -55,44 +51,15 @@ func (f *Factory) Restart(namespace string) http.Handler {
 	})
 	return h
 }
-func SaveTaskReq(o orm.Ormer, doc *v2.MetaV2) error {
-	err := o.DoTx(func(ctx context.Context, txOrm orm.TxOrmer) error {
-		// insert data
-		// Using txOrm to execute SQL
-		_, e := txOrm.Insert(doc)
-		// if e != nil the transaction will be rollback
-		// or it will be committed
-		return e
-	})
-	if err != nil {
-		klog.Errorf("Something wrong when insert NodeTaskRequest data: %v", err)
-		return err
-	}
-	klog.V(4).Info("insert NodeTaskRequest data successfully")
-	return nil
-}
 func (f *Factory) ConfirmUpgrade(_ string) http.Handler {
 	h := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		klog.Infof("Begin to run upgrade command")
 		var upgradeReq commontypes.NodeUpgradeJobRequest
 		var configFile string
 		var nodeTaskReq types.NodeTaskRequest
-		var metadata *v2.MetaV2
-		ormdb := orm.NewOrm()
-		nodeTaskReqType := reflect.TypeOf(nodeTaskReq)
-		nodeTaskReqValue := reflect.ValueOf(nodeTaskReq)
-		for i := 0; i < nodeTaskReqType.NumField(); i++ {
-			fieldType := nodeTaskReqType.Field(i)
-			metadata = &v2.MetaV2{
-				Key:   strconv.Itoa(i),
-				Name:  fieldType.Name,
-				Value: nodeTaskReqValue.FieldByName(fieldType.Name).String(),
-			}
-			err := SaveTaskReq(ormdb, metadata)
-			if err != nil {
-				klog.Error("Save NodeTaskRequest to DB error!")
-				return
-			}
+		orm := upgrade.InitNodeTaskRequestTable()
+		if err := upgrade.SaveNodeTaskRequest(orm, nodeTaskReq); err != nil {
+			klog.Errorf("Save NodeTaskRequest Error:%v", err)
 		}
 		upgradeCmd := fmt.Sprintf("keadm upgrade edge --upgradeID %s --historyID %s --fromVersion %s --toVersion %s --config %s --image %s > /tmp/keadm.log 2>&1",
 			upgradeReq.UpgradeID, upgradeReq.HistoryID, version.Get(), upgradeReq.Version, configFile, upgradeReq.Image)
@@ -111,6 +78,9 @@ func (f *Factory) ConfirmUpgrade(_ string) http.Handler {
 			return
 		}
 		klog.Infof("!!! Finish upgrade from Version %s to %s ...", version.Get(), upgradeReq.Version)
+		if err := upgrade.DeleteNodeTaskRequest(orm, nodeTaskReq); err != nil {
+			klog.Errorf("Delete NodeTaskRequest Failing:%v", err)
+		}
 	})
 	return h
 }
