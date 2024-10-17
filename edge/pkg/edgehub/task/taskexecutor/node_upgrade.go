@@ -29,6 +29,7 @@ import (
 	"github.com/kubeedge/kubeedge/common/types"
 	commontypes "github.com/kubeedge/kubeedge/common/types"
 	"github.com/kubeedge/kubeedge/edge/cmd/edgecore/app/options"
+	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/dao/upgradedb"
 	"github.com/kubeedge/kubeedge/keadm/cmd/keadm/app/cmd/util"
 	"github.com/kubeedge/kubeedge/pkg/util/fsm"
 	"github.com/kubeedge/kubeedge/pkg/version"
@@ -84,6 +85,31 @@ func initUpgrade(taskReq types.NodeTaskRequest) (event fsm.Event) {
 		return
 	}
 	if upgradeReq.RequireConfirmation {
+		orm := upgradedb.InitNodeUpgradeConfirmTable()
+		var upgradeJobReqDb = commontypes.NodeUpgradeJobRequest{
+			UpgradeID:           upgradeReq.UpgradeID,
+			HistoryID:           upgradeReq.HistoryID,
+			Version:             upgradeReq.Version,
+			UpgradeTool:         upgradeReq.UpgradeTool,
+			Image:               upgradeReq.Image,
+			ImageDigest:         upgradeReq.ImageDigest,
+			RequireConfirmation: upgradeReq.RequireConfirmation,
+		}
+		if err = upgradedb.SaveNodeUpgradeJobRequest(orm, upgradeJobReqDb); err != nil {
+			event.Action = api.ActionFailure
+			event.Msg = err.Error()
+		}
+		e, _ := GetExecutor(TaskUpgrade)
+		var taskReqDB = types.NodeTaskRequest{
+			TaskID: e.Name(),
+			Type:   "Confirm",
+			State:  string(api.NodeUpgrading),
+			Item:   "Wait for a confirm for upgrade request on the edge site.",
+		}
+		if err = upgradedb.SaveNodeTaskRequest(orm, taskReqDB); err != nil {
+			event.Action = api.ActionFailure
+			event.Msg = err.Error()
+		}
 		return fsm.Event{
 			Type:   "Confirm",
 			Action: api.ActionConfirmation,

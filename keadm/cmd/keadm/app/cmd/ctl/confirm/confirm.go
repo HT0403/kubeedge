@@ -26,7 +26,6 @@ import (
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 
 	"github.com/kubeedge/kubeedge/common/types"
-	"github.com/kubeedge/kubeedge/keadm/cmd/keadm/app/cmd/common"
 	"github.com/kubeedge/kubeedge/keadm/cmd/keadm/app/cmd/ctl/client"
 )
 
@@ -34,13 +33,8 @@ var (
 	edgeConfirmShortDescription = `Send a confirmation signal to the MetaService API`
 )
 
-type NodeConfirmOptions struct {
-	UpgradeJobName string
-}
-
 // NewEdgeConfirm returns KubeEdge confirm command.
 func NewEdgeConfirm() *cobra.Command {
-	nodeConfirmOptions := NewNodeConfirmOpts()
 	cmd := &cobra.Command{
 		Use:   "confirm",
 		Short: edgeConfirmShortDescription,
@@ -49,20 +43,19 @@ func NewEdgeConfirm() *cobra.Command {
 			if len(args) <= 0 {
 				return fmt.Errorf("no specified node name for confirm upgrade")
 			}
-			cmdutil.CheckErr(nodeConfirmOptions.confirmNode())
+			cmdutil.CheckErr(confirmNode())
 			return nil
 		},
 	}
-	AddNodeConfirmFlags(cmd, nodeConfirmOptions)
 	return cmd
 }
-func (o *NodeConfirmOptions) confirmNode() error {
+func confirmNode() error {
 	kubeClient, err := client.KubeClient()
 	if err != nil {
 		return err
 	}
 	ctx := context.Background()
-	confirmResponse, err := nodeConfirm(ctx, kubeClient, o.UpgradeJobName)
+	confirmResponse, err := nodeConfirm(ctx, kubeClient)
 	if err != nil {
 		return err
 	}
@@ -76,20 +69,9 @@ func (o *NodeConfirmOptions) confirmNode() error {
 	}
 	return nil
 }
-func NewNodeConfirmOpts() *NodeConfirmOptions {
-	nodeConfirmOptions := &NodeConfirmOptions{}
-	nodeConfirmOptions.UpgradeJobName = "default"
-	return nodeConfirmOptions
-}
 
-func AddNodeConfirmFlags(cmd *cobra.Command, nodeConfirmOptions *NodeConfirmOptions) {
-	cmd.Flags().StringVarP(&nodeConfirmOptions.UpgradeJobName, common.FlagNameUpgradeJobName, "j", nodeConfirmOptions.UpgradeJobName,
-		"FlagNameUpgradeJobName edge upgrade job name for upgrade")
-}
-
-func nodeConfirm(ctx context.Context, clientSet *kubernetes.Clientset, upgradeJobName string) (*types.RestartResponse, error) {
+func nodeConfirm(ctx context.Context, clientSet *kubernetes.Clientset) (*types.RestartResponse, error) {
 	result := clientSet.CoreV1().RESTClient().Post().
-		Namespace(upgradeJobName).
 		Resource("taskupgrade").
 		SubResource("confirm-upgrade").
 		Do(ctx)

@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"os/exec"
 
+	"github.com/beego/beego/v2/client/orm"
 	"k8s.io/klog/v2"
 
 	"github.com/kubeedge/kubeedge/common/types"
 	commontypes "github.com/kubeedge/kubeedge/common/types"
 	"github.com/kubeedge/kubeedge/edge/cmd/edgecore/app/options"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgehub/task/taskexecutor"
-	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/dao/upgrade"
+	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/dao/upgradedb"
 	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/metaserver/common"
 	"github.com/kubeedge/kubeedge/pkg/version"
 )
@@ -52,16 +53,14 @@ func (f *Factory) Restart(namespace string) http.Handler {
 	})
 	return h
 }
-func (f *Factory) ConfirmUpgrade(upgradeJobName string) http.Handler {
-	h := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+func (f *Factory) ConfirmUpgrade() http.Handler {
+	h := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		klog.Infof("Begin to run upgrade command")
 		opts := options.GetEdgeCoreOptions()
 		var upgradeReq commontypes.NodeUpgradeJobRequest
 		var nodeTaskReq types.NodeTaskRequest
-		orm := upgrade.InitNodeTaskRequestTable(upgradeJobName)
-		if err := upgrade.SaveNodeTaskRequest(orm, nodeTaskReq); err != nil {
-			klog.Errorf("Save NodeTaskRequest Error:%v", err)
-		}
+		nodeTaskReq, _ = upgradedb.GetNodeTaskRequest()
+		upgradeReq, _ = upgradedb.GetNodeUpgradeJobRequest()
 		upgradeCmd := fmt.Sprintf("keadm upgrade edge --upgradeID %s --historyID %s --fromVersion %s --toVersion %s --config %s --image %s > /tmp/keadm.log 2>&1",
 			upgradeReq.UpgradeID, upgradeReq.HistoryID, version.Get(), upgradeReq.Version, opts.ConfigFile, upgradeReq.Image)
 
@@ -79,8 +78,9 @@ func (f *Factory) ConfirmUpgrade(upgradeJobName string) http.Handler {
 			return
 		}
 		klog.Infof("!!! Finish upgrade from Version %s to %s ...", version.Get(), upgradeReq.Version)
-		if err := upgrade.DeleteNodeTaskRequest(orm, nodeTaskReq); err != nil {
-			klog.Errorf("Delete NodeTaskRequest Failing:%v", err)
+		err = upgradedb.DeleteNodeUpgradeConfirmTable(orm.NewOrm())
+		if err != nil {
+			klog.Errorf("Failed to delete table%s", err.Error())
 		}
 	})
 	return h
