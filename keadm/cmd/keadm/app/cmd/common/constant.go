@@ -51,8 +51,8 @@ const (
 	// FlagNamePrintFinalValues ...
 	FlagNamePrintFinalValues = "print-final-values"
 
-	// FlagNameConfirmUpgrade
-	FlagNameConfirmUpgradeJobName = "confirm-upgrade"
+	// FlagNameUpgradeJobName
+	FlagNameUpgradeJobName = "node-upgrade-name"
 )
 
 // Cloud init flag names

@@ -24,9 +24,9 @@ type NodeTaskRequestTable struct {
 	Value string `orm:"column(value);null;type(text)"`
 }
 
-func InitNodeTaskRequestTable() orm.Ormer {
+func InitNodeTaskRequestTable(name string) orm.Ormer {
 	orm.RegisterModel(new(NodeTaskRequestTable))
-	obm := dbm.DefaultOrmFunc()
+	obm := orm.NewOrmUsingDB(name)
 	return obm
 }
 

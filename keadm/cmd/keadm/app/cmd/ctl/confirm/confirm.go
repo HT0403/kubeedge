@@ -47,22 +47,22 @@ func NewEdgeConfirm() *cobra.Command {
 		Long:  edgeConfirmShortDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) <= 0 {
-				return fmt.Errorf("no node specified for confirm upgrade")
+				return fmt.Errorf("no specified node name for confirm upgrade")
 			}
-			cmdutil.CheckErr(nodeConfirmOptions.confirmNode(args[0]))
+			cmdutil.CheckErr(nodeConfirmOptions.confirmNode())
 			return nil
 		},
 	}
 	AddNodeConfirmFlags(cmd, nodeConfirmOptions)
 	return cmd
 }
-func (o *NodeConfirmOptions) confirmNode(nodeHostName string) error {
+func (o *NodeConfirmOptions) confirmNode() error {
 	kubeClient, err := client.KubeClient()
 	if err != nil {
 		return err
 	}
 	ctx := context.Background()
-	confirmResponse, err := nodeConfirm(ctx, kubeClient, o.UpgradeJobName, nodeHostName)
+	confirmResponse, err := nodeConfirm(ctx, kubeClient, o.UpgradeJobName)
 	if err != nil {
 		return err
 	}
@@ -83,19 +83,15 @@ func NewNodeConfirmOpts() *NodeConfirmOptions {
 }
 
 func AddNodeConfirmFlags(cmd *cobra.Command, nodeConfirmOptions *NodeConfirmOptions) {
-	cmd.Flags().StringVarP(&nodeConfirmOptions.UpgradeJobName, common.FlagNameConfirmUpgradeJobName, "n", nodeConfirmOptions.UpgradeJobName,
-		"NodeUpgradeJob name for upgrade confirm")
+	cmd.Flags().StringVarP(&nodeConfirmOptions.UpgradeJobName, common.FlagNameUpgradeJobName, "j", nodeConfirmOptions.UpgradeJobName,
+		"FlagNameUpgradeJobName edge upgrade job name for upgrade")
 }
 
-func nodeConfirm(ctx context.Context, clientSet *kubernetes.Clientset, upgradejobName string, nodeHostName string) (*types.RestartResponse, error) {
-	bodyBytes, err := json.Marshal(nodeHostName)
-	if err != nil {
-		return nil, err
-	}
+func nodeConfirm(ctx context.Context, clientSet *kubernetes.Clientset, upgradeJobName string) (*types.RestartResponse, error) {
 	result := clientSet.CoreV1().RESTClient().Post().
-		Resource("taskupgrade" + "/" + upgradejobName).
+		Namespace(upgradeJobName).
+		Resource("taskupgrade").
 		SubResource("confirm-upgrade").
-		Body(bodyBytes).
 		Do(ctx)
 
 	if result.Error() != nil {
